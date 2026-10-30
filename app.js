@@ -33,7 +33,8 @@ const store=async(mode,fn)=>new Promise((resolve,reject)=>{const tx=db.transacti
 function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').style.display='none',3500);}
 function revoke(){urls.forEach(URL.revokeObjectURL);urls=[];}
 function closeModal(){modal.close();modal.innerHTML='';revoke();}
-modal.addEventListener('close',()=>{modal.innerHTML='';revoke();});
+// A queued close event may arrive after the dialog has reopened with new content.
+modal.addEventListener('close',()=>{if(!modal.open){modal.innerHTML='';revoke();}});
 function show(html){revoke();modal.innerHTML=html;if(!modal.open)modal.showModal();}
 function lock(){epoch++;data=null;key=null;vaultData=null;vaultKey=null;vaultSalt=null;query='';closeModal();document.body.classList.remove('full-cal');renderAuth();}
 async function persist(next=data, nextVault=vaultData){
@@ -144,5 +145,6 @@ window.addEventListener('pagehide',()=>{if(data)lock();});
 setInterval(()=>{if(data&&Date.now()-lastActivity>300000)lock();},10000);
 async function start(){try{if(!crypto.subtle)throw Error('Otvor appku cez HTTPS alebo localhost.');db=await new Promise((resolve,reject)=>{const request=indexedDB.open('fsb-private-v1',1);request.onupgradeneeded=()=>request.result.createObjectStore('state');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});envelope=await store('readonly',s=>s.get('main'));faceRecord=await store('readonly',s=>s.get('face'));if(faceRecord?.envelopeSalt!==envelope?.salt)faceRecord=null;renderAuth();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(err){app.innerHTML=`<div class="auth"><h1>FSB sa nepodarilo otvoriť</h1><p>${esc(err.message)}</p><p class="muted">Použi Safari cez HTTPS a povoľ ukladanie dát.</p></div>`;}}
 start();
+
 
 
