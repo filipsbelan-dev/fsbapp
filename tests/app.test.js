@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import * as core from '../core.js';
 function harness(){
  const elements=new Map(),handlers={},queuedClose=[];const element=()=>({innerHTML:'',value:'',style:{},classList:{add(){},remove(){},toggle(){}},listeners:{},open:false,addEventListener(name,fn){this.listeners[name]=fn;},close(){if(this.open){this.open=false;queuedClose.push(()=>this.listeners.close?.());}},showModal(){this.open=true;},querySelector(){return element();}});
- const context=vm.createContext({...core,console,crypto,TextEncoder,TextDecoder,URL,Blob,structuredClone,Date,Intl,setInterval(){},setTimeout(){},clearTimeout(){},document:{querySelector(s){if(!elements.has(s))elements.set(s,element());return elements.get(s);},addEventListener(name,fn){handlers[name]=fn;},body:element()},window:{addEventListener(){}},navigator:{}});
+ const context=vm.createContext({...core,console,crypto,TextEncoder,TextDecoder,URL,Blob,structuredClone,Date,Intl,setInterval(){},setTimeout(){},clearTimeout(){},document:{querySelector(s){if(!elements.has(s))elements.set(s,element());return elements.get(s);},addEventListener(name,fn){handlers[name]=fn;},body:element()},window:{addEventListener(){},scrollTo(){}},navigator:{}});
  const source=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/start\(\);\s*$/,'');
  vm.runInContext(source,context);vm.runInContext('data=emptyData();',context);return {run:s=>vm.runInContext(s,context),elements,flushClose:()=>{while(queuedClose.length)queuedClose.shift()();},click:async dataset=>{const el={dataset,disabled:false};return handlers.click({target:{closest:()=>el}});}};
 }
@@ -30,14 +30,16 @@ test('Cards render as logo tiles; private files are grouped; list rows have full
 });
 
 
-test('Delayed close event cannot erase a reopened shopping dialog',()=>{
- const {run,elements,flushClose}=harness();run("data.shoppingLists=[{id:'l',title:'Nákup'}];data.shopping=[{id:'i',listId:'l',title:'Mlieko'}];shoppingView('l');closeModal();shoppingView('l');");
- flushClose();assert.equal(elements.get('#modal').open,true);assert.ok(elements.get('#modal').innerHTML.includes('Mlieko'));
+test('Leaving an edit dialog opens shopping as a page with no blocking overlay',()=>{
+ const {run,elements,flushClose}=harness();run("data.shoppingLists=[{id:'l',title:'Nákup'}];data.shopping=[{id:'i',listId:'l',title:'Mlieko'}];show('edit form');shoppingView('l');");
+ flushClose();assert.equal(elements.get('#modal').open,false);assert.equal(elements.get('#modal').innerHTML,'');assert.ok(elements.get('#app').innerHTML.includes('Mlieko'));
 });
-test('Checking, unchecking and deleting a shopping item keeps its parent list visible',async()=>{
+test('Checking, unchecking and deleting an item keeps shopping on the main page',async()=>{
  const {run,elements,click,flushClose}=harness();run("data.shoppingLists=[{id:'l',title:'Nákup'}];data.shopping=[{id:'i',listId:'l',title:'Mlieko',done:false},{id:'j',listId:'l',title:'Chlieb',done:false}];page='shopping';persist=async next=>structuredClone(next);shoppingView('l');");
- await click({action:'toggle',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping[0].done'),true);assert.ok(elements.get('#modal').innerHTML.includes('1 z 2 hotových'));
- await click({action:'toggle',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping[0].done'),false);assert.ok(elements.get('#modal').innerHTML.includes('0 z 2 hotových'));
- await click({action:'confirmDelete',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping.length'),1);assert.ok(elements.get('#modal').innerHTML.includes('Chlieb'));
+ await click({action:'toggle',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping[0].done'),true);assert.ok(elements.get('#app').innerHTML.includes('1 z 2 hotových'));assert.equal(elements.get('#modal').open,false);
+ await click({action:'toggle',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping[0].done'),false);assert.ok(elements.get('#app').innerHTML.includes('0 z 2 hotových'));assert.equal(elements.get('#modal').open,false);
+ await click({action:'confirmDelete',type:'shopping',id:'i'});flushClose();assert.equal(run('data.shopping.length'),1);assert.ok(elements.get('#app').innerHTML.includes('Chlieb'));
+ await click({action:'shoppingBack'});assert.equal(run('shoppingListId'),null);assert.ok(elements.get('#app').innerHTML.includes('Nákupné zoznamy'));
 });
 test('Closing a dialog normally still clears its contents',()=>{const {run,elements,flushClose}=harness();run("show('private');closeModal();");flushClose();assert.equal(elements.get('#modal').innerHTML,'');});
+
