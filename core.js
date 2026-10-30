@@ -19,8 +19,8 @@ export async function createEnvelope(data,secret) {const salt=b64(crypto.getRand
 export const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 export function monthCells(year,month) { const first=new Date(year,month,1),offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(year,month+1,0).getDate())/7)*7},(_,i)=>{const d=new Date(year,month,1-offset+i);return {date:dateKey(d),day:d.getDate(),current:d.getMonth()===month};});}
 export const money = n => new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(n)||0);
-export function emptyData() {return {schema:1,recurring:[],income:[],payments:[],notes:[],events:[],expenses:[],cards:[],tasks:[],shopping:[],cars:[],service:[],vault:null};}
-export function validateData(d) {if(d?.schema!==1 || !['notes','events','expenses','cards','tasks','shopping','cars','service'].every(k=>Array.isArray(d[k]))) throw Error('Záloha neobsahuje údaje FSB.');for(const k of ['recurring','income','payments']){if(d[k]===undefined)d[k]=[];if(!Array.isArray(d[k]))throw Error('Neplatné finančné údaje.');}return d;}
+export function emptyData() {return {schema:1,recurring:[],income:[],payments:[],notes:[],events:[],expenses:[],cards:[],tasks:[],shopping:[],shoppingLists:[],cars:[],service:[],vault:null};}
+export function validateData(d) {if(d?.schema!==1 || !['notes','events','expenses','cards','tasks','shopping','cars','service'].every(k=>Array.isArray(d[k]))) throw Error('Záloha neobsahuje údaje FSB.');for(const k of ['recurring','income','payments']){if(d[k]===undefined)d[k]=[];if(!Array.isArray(d[k]))throw Error('Neplatné finančné údaje.');}return migrateShopping(d);}
 
 
 // Money calculations use integer cents. Installment balances are the remaining
@@ -44,3 +44,17 @@ export function financeSummary(d,month) {
  const due=(d.recurring||[]).reduce((n,r)=>n+((d.payments||[]).some(p=>p.recurringId===r.id&&p.month===month)?0:cents(recurringDue(r,d.payments||[],month))),0);
  return {income:income/100,spent:spent/100,due:due/100,available:(income-spent)/100,afterBills:(income-spent-due)/100};
 }
+
+
+export function migrateShopping(d){
+ if(d.shoppingLists===undefined)d.shoppingLists=[];
+ if(!Array.isArray(d.shoppingLists))throw Error('Neplatné nákupné zoznamy.');
+ for(const item of d.shopping){
+  if(item.listId&&d.shoppingLists.some(l=>l.id===item.listId))continue;
+  const name=item.category||'Môj nákup';let list=d.shoppingLists.find(l=>l.title===name);
+  if(!list){list={id:'legacy-list-'+d.shoppingLists.length,title:name};while(d.shoppingLists.some(l=>l.id===list.id))list.id+='x';d.shoppingLists.push(list);}
+  item.listId=list.id;
+ }
+ return d;
+}
+export function shoppingLines(text){return String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);}

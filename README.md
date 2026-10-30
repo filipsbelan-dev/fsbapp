@@ -101,3 +101,16 @@ Pri splátkach sa nič nesplatí iba plynutím času. Znižujú ich len zaznamen
 
 Overené 13 automatickými testami vrátane poslednej čiastkovej splátky, vynechanej úhrady, centovej presnosti, historických mesiacov a zachovania starších mesačných platieb. Vizuálna kontrola na iPhone zostáva potrebná.
 
+
+
+## Ovládanie a zoznamy — aktualizácia 1.3
+
+- Tlačidlo „Uhradené ↶“ pri platbe vráti položku na neuhradenú, odstráni záznam úhrady a prepočíta mesačný rozpočet aj zostatok splátky. Rovnaká možnosť je v detaile úhrady.
+- Celý riadok záznamu otvára detail. Checkbox úlohy/nákupu funguje samostatne a detail neotvára.
+- Vernostné karty sú po troch v riadku. V editácii karty možno nahrať logo PNG/JPG/WebP; fotka karty alebo čiarového kódu ostáva samostatnou prílohou.
+- Doklady ukazujú stav platnosti, posledné štyri znaky čísla a dostupné strany skenu. Plné číslo je až v detaile v odomknutom trezore. Súbory sú zoskupené podľa priečinka a podporované fotky majú náhľad.
+- Nákupné zoznamy majú názov a viac položiek. Vytvor zoznam a napíš každú položku na nový riadok. Cez „Položky / upraviť zoznam“ doplníš ďalšie. Staré nákupy sa pri odomknutí automaticky priradia do zoznamov podľa ich pôvodného názvu; množstvá aj odškrtnutie zostávajú. Vymazanie celého zoznamu vyžaduje potvrdenie a vymaže aj jeho položky.
+- V detaile hesla je „Skopírovať heslo“. Vyžaduje HTTPS a povolený prístup k schránke. Kopírovanie nezobrazí heslo; skopírovaný text ostane v systémovej schránke podľa správania zariadenia.
+- Domov používa tematické emoji.
+
+Overené 19 automatickými testami, vrátane obsluhy vrátenia úhrady, schránky a migrácie starých nákupov. Test schránky používa simulované API; skutočný iPhone a vizuálne rozloženie neboli v tomto prostredí overené.
