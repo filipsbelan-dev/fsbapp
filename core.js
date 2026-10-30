@@ -21,3 +21,26 @@ export function monthCells(year,month) { const first=new Date(year,month,1),offs
 export const money = n => new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 export function emptyData() {return {schema:1,recurring:[],income:[],payments:[],notes:[],events:[],expenses:[],cards:[],tasks:[],shopping:[],cars:[],service:[],vault:null};}
 export function validateData(d) {if(d?.schema!==1 || !['notes','events','expenses','cards','tasks','shopping','cars','service'].every(k=>Array.isArray(d[k]))) throw Error('Záloha neobsahuje údaje FSB.');for(const k of ['recurring','income','payments']){if(d[k]===undefined)d[k]=[];if(!Array.isArray(d[k]))throw Error('Neplatné finančné údaje.');}return d;}
+
+
+// Money calculations use integer cents. Installment balances are the remaining
+// agreed payments at the beginning of tracking, including any known interest.
+export const cents = value => Math.round((Number(value)||0)*100);
+export function installmentInfo(r,payments,month='9999-12') {
+ const total=Math.max(0,cents(r.balance));
+ const paid=payments.filter(p=>p.recurringId===r.id&&(p.month||p.date?.slice(0,7))>=r.start&&(p.month||p.date?.slice(0,7))<=month).reduce((n,p)=>n+cents(p.amount),0);
+ const remaining=Math.max(0,total-paid),amount=cents(r.amount);
+ return {total:total/100,paid:Math.min(total,paid)/100,remaining:remaining/100,count:amount>0?Math.ceil(remaining/amount):0,percent:total?Math.min(100,Math.round(paid/total*100)):0};
+}
+export function recurringDue(r,payments,month) {
+ if(r.start>month||(r.end&&r.end<month))return 0;
+ if(r.kind!=='Splátka')return Math.max(0,cents(r.amount))/100;
+ const before=payments.filter(p=>(p.month||p.date?.slice(0,7))<month);
+ return Math.min(Math.max(0,cents(r.amount)),cents(installmentInfo(r,before,month).remaining))/100;
+}
+export function financeSummary(d,month) {
+ const income=(d.income||[]).filter(r=>r.date?.startsWith(month)).reduce((n,r)=>n+cents(r.amount),0);
+ const spent=[...(d.expenses||[]),...(d.service||[]),...(d.payments||[])].filter(r=>r.date?.startsWith(month)).reduce((n,r)=>n+cents(r.amount),0);
+ const due=(d.recurring||[]).reduce((n,r)=>n+((d.payments||[]).some(p=>p.recurringId===r.id&&p.month===month)?0:cents(recurringDue(r,d.payments||[],month))),0);
+ return {income:income/100,spent:spent/100,due:due/100,available:(income-spent)/100,afterBills:(income-spent-due)/100};
+}

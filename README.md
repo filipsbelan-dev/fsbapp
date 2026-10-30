@@ -40,7 +40,7 @@ Príklad: príjem 1 500 €, výdavky 200 €, servis 100 €, nezaplatený úve
 
 „Zaplatiť“ len zaznamená úhradu, neposiela peniaze. Na zrušenie úhrady otvor „Zaplatené“ a vymaž záznam úhrady. Nezapisuj tú istú platbu aj ako bežný výdavok. Historická úhrada si zachová sumu aj po úprave šablóny.
 
-Príjmy zadávaš každý mesiac. Zostatok sa neprenáša automaticky; môžeš pridať príjem „Prenos z minulého mesiaca“. Zostatok úveru je voliteľný ručne aktualizovaný údaj, nie výpočet istiny/úrokov. Pri zmene pravidelnej sumy ukonči pôvodnú šablónu a vytvor novú: úprava starej šablóny ovplyvní aj plán minulých mesiacov. Výpočet nie je bankový zostatok.
+Príjmy zadávaš každý mesiac. Zostatok sa neprenáša automaticky; môžeš pridať príjem „Prenos z minulého mesiaca“. Pri type Splátka zadaj na začiatku evidencie zostávajúcu dohodnutú sumu vrátane známych poplatkov. Zostatok a počet zostávajúcich splátok sa prepočítajú podľa označených úhrad; posledná platba sa zníži na zvyšok. Appka sama nepočíta úroky. Staršie platby bez typu ostávajú mesačnými platbami; na splátku ich môžeš prepnúť cez Upraviť. Pri zmene pravidelnej sumy ukonči pôvodnú šablónu a vytvor novú: úprava starej šablóny ovplyvní aj plán minulých mesiacov. Výpočet nie je bankový zostatok.
 
 ## Bezpečnosť a dáta
 
@@ -90,3 +90,14 @@ Prešlo 8 automatických testov (vrátane simulovaných PRF odpovedí, odmietnut
 **Vizuálna kontrola v prehliadači a test na fyzickom iPhone neboli vykonané:** služba náhľadu bola nedostupná. Testy obrazoviek kontrolujú generované HTML, nie rozloženie či dotykové interakcie. Po nahratí over PIN, formuláre, trezor, prílohy, platby, export/obnovu, zamknutie pri prepnutí a offline otvorenie.
 
 Pri aktualizácii zvýš verziu cache v `sw.js` (napr. `fsb-shell-v2`) a nahraj všetky súbory spolu. Nemeň názov databázy ani kryptografický formát bez migrácie. Pred aktualizáciou zálohuj.
+
+## Prehľad financií od verzie 1.2
+
+Domov zobrazuje meno Filip S. Belan, dnešný počet udalostí, aktuálny mesačný príjem, zaplatené výdavky a ich rozdiel v jednom riadku. Kvôli šírke mobilu sú sumy na domove zaokrúhlené na eurá a veľké sumy skrátené; presné centy nájdeš vo Financiách. Úvod neobsahuje uvítací blok ani spodné opakované prehľady.
+
+Financie majú záložky Platby (byt, paušál, predplatné), Splátky (telefón, Mac, hodinky, auto), Nákupy (bežné výdavky a servis) a Príjmy. Horný rozpočet zobrazuje aj rezervu na neuhradené mesačné platby. Označenie úhrady neposiela peniaze. Detail uhradenej platby umožňuje vymazanie chybnej úhrady a tým obnoví zostatok. História úhrad je zbalená pod mesačnými platbami.
+
+Pri splátkach sa nič nesplatí iba plynutím času. Znižujú ich len zaznamenané úhrady od začiatku evidencie. Zobrazený počet je odhad pri nastavenej mesačnej sume, posledná splátka môže byť menšia. Ak vynecháš mesiac, zostatok zostane; rozpočet ďalšieho mesiaca rezervuje jednu mesačnú splátku, nie automaticky všetky omeškané splátky. Pri úprave počiatočného zostatku nezadávaj už zníženú sumu, inak by sa existujúce úhrady odpočítali znova.
+
+Overené 13 automatickými testami vrátane poslednej čiastkovej splátky, vynechanej úhrady, centovej presnosti, historických mesiacov a zachovania starších mesačných platieb. Vizuálna kontrola na iPhone zostáva potrebná.
+
