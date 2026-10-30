@@ -59,19 +59,33 @@ Toto je funkčná prvá verzia, **nie bezpečnostne auditovaný správca hesiel*
 - Bez analytiky, cudzích knižníc a odosielania osobných dát. Zabezpeč GitHub účet: škodlivá zmena kódu na tej istej adrese môže čítať odomknuté dáta.
 - **Zálohy, doklady a skutočné osobné údaje nikdy nenahrávaj do repozitára.**
 
+## Face ID / prístupový kľúč (verzia 1.1)
+
+V Nastaveniach zvoľ **Nastaviť Face ID**. Vytvor systémový prístupový kľúč FSB, zadaj aktuálny PIN a potom potvrď aktiváciu. Na zamknutej obrazovke pribudne tlačidlo **Odomknúť cez Face ID**. iOS rozhoduje, či použije tvár alebo kód zariadenia; web nevynúti iba biometrické overenie.
+
+Podmienkou je HTTPS, platformový prístupový kľúč a podpora rozšírenia WebAuthn PRF v prehliadači aj správcovi kľúčov. Bez tejto podpory sa nastavenie odmietne a ostáva PIN. Funkčnosť na konkrétnom iPhone treba vyskúšať; fyzický iPhone nebol v testovacom prostredí dostupný.
+
+PRF vytvorí tajný materiál pre AES-GCM, ktorým sa zašifruje PIN. Úspešné systémové okno samo o sebe nestačí: appka potrebuje získať rovnaký PRF výsledok, dešifrovať PIN a ním dešifrovať údaje. Overuje aj identifikátor kľúča, challenge, origin, RP hash a príznak overenia používateľa. Nejde o serverové prihlásenie ani auditovanú autentifikačnú službu.
+
+V databáze sa uchová iba zašifrovaný PIN a metadáta, nie otvorený PIN ani PRF kľúč. Väzba zahŕňa adresu appky a soľ jej šifrovania. Trezor sa týmto neodomyká. Zmena PIN-u alebo obnova zálohy Face ID v appke vypne; treba ho nastaviť znova. Vypnutie v appke odstráni lokálnu väzbu, nie systémový passkey — ten možno odstrániť v Heslách na iPhone. Pri neúspešnom nastavení môže ostať nepoužívaný passkey, ktorý tiež možno zmazať v systémových Heslách. Zálohy neobsahujú nastavenie Face ID. Poskytovateľ passkey ho môže synchronizovať podľa svojich nastavení, ale appka nesynchronizuje osobné dáta.
+
+Pri systémovom potvrdení je appka zamknutá; neobchádza sa automatický zámok. Používaj dôveryhodný správca prístupových kľúčov a ponechaj si PIN ako záložný spôsob.
+
+Dokumentácia API: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/WebAuthn_extensions#prf
+
 ## Zatiaľ nezapojené
 
-Face ID/passkeys, synchronizácia, automatické zálohy, push upozornenia pri zatvorenej appke, Apple kalendár, skenovanie, univerzálne vyhľadávanie a svetlý režim. Termíny auta sa zobrazujú v appke; automatické pripomienky dokladov ešte nie. Fotky dokladov nie sú oficiálne digitálne doklady. Pravidelné platby podporujú mesačnú frekvenciu.
+Synchronizácia, automatické zálohy, push upozornenia pri zatvorenej appke, Apple kalendár, skenovanie, univerzálne vyhľadávanie a svetlý režim. Termíny auta sa zobrazujú v appke; automatické pripomienky dokladov ešte nie. Fotky dokladov nie sú oficiálne digitálne doklady. Pravidelné platby podporujú mesačnú frekvenciu.
 
 ## Úpravy a kontrola
 
-Hlavné súbory: `index.html`, `style.css`, `app.js`, `core.js`, `sw.js`, `manifest.webmanifest`, `icons/`. Relatívne cesty fungujú aj v podpriečinku GitHub Pages.
+Hlavné súbory: `index.html`, `style.css`, `app.js`, `core.js`, `sw.js`, `passkey.js`, `manifest.webmanifest`, `icons/`. Relatívne cesty fungujú aj v podpriečinku GitHub Pages.
 
 Lokálne: `python3 -m http.server 8080`, potom `http://localhost:8080`. Nepoužívaj otvorenie cez `file://`: kryptografia a service worker potrebujú HTTPS alebo localhost.
 
 Testy: moderný Node.js s Web Crypto (napr. Node 22+), potom `npm test`. Netreba inštalovať balíky.
 
-Prešlo 7 automatických testov: kryptografický round-trip, nesprávny PIN, poškodené dáta, oddelený trezor, prestupný rok a hranice kalendára, validácia zálohy, finančné výpočty bez dvojitého účtovania, generované obrazovky a escapovanie textu. Jeden test môže obsahovať viac scenárov.
+Prešlo 8 automatických testov (vrátane simulovaných PRF odpovedí, odmietnutia nesprávneho kľúča, zrušenia, chýbajúcej podpory a poškodeného ciphertextu): kryptografický round-trip, nesprávny PIN, poškodené dáta, oddelený trezor, prestupný rok a hranice kalendára, validácia zálohy, finančné výpočty bez dvojitého účtovania, generované obrazovky a escapovanie textu. Jeden test môže obsahovať viac scenárov.
 
 **Vizuálna kontrola v prehliadači a test na fyzickom iPhone neboli vykonané:** služba náhľadu bola nedostupná. Testy obrazoviek kontrolujú generované HTML, nie rozloženie či dotykové interakcie. Po nahratí over PIN, formuláre, trezor, prílohy, platby, export/obnovu, zamknutie pri prepnutí a offline otvorenie.
 
