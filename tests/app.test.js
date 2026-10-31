@@ -43,3 +43,14 @@ test('Checking, unchecking and deleting an item keeps shopping on the main page'
 });
 test('Closing a dialog normally still clears its contents',()=>{const {run,elements,flushClose}=harness();run("show('private');closeModal();");flushClose();assert.equal(elements.get('#modal').innerHTML,'');});
 
+test('Finance headline falls after payment and returns after undo',async()=>{
+ const {run,click}=harness();run("financeMonth='2026-10';data.income=[{amount:'1000',date:'2026-10-01'}];data.recurring=[{id:'rent',title:'Nájom',amount:'600',start:'2026-10',day:'1'}];persist=async next=>structuredClone(next);page='expenses';");
+ const headline=()=>run('finance()').match(/Zostáva teraz<\/small><h2[^>]*>(.*?)<\/h2>/)[1];
+ assert.equal(headline(),core.money(1000));await click({action:'pay',id:'rent'});assert.equal(headline(),core.money(400));assert.equal(run("financeSummary(data,'2026-10').due"),0);
+ await click({action:'unpay',id:run('data.payments[0].id')});assert.equal(headline(),core.money(1000));assert.equal(run("financeSummary(data,'2026-10').afterBills"),400);
+});
+test('Card detail omits logo while retaining the card information',()=>{
+ const {run,elements}=harness();run("data.cards=[{id:'c',title:'Obchod',number:'1234',logo:{name:'large-logo.png',type:'image/png',data:'data:image/png;base64,AAAA'}}];view('cards','c');");
+ assert.ok(elements.get('#details').innerHTML.includes('1234'));assert.ok(!elements.get('#details').innerHTML.includes('large-logo'));assert.ok(!elements.get('#details').innerHTML.includes('Logo obchodu'));
+ assert.ok(run("visualPage('cards')").includes('loyalty-logo'));
+});

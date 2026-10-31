@@ -58,3 +58,19 @@ export function migrateShopping(d){
  return d;
 }
 export function shoppingLines(text){return String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);}
+
+
+export function homeSections(layout,ids){
+ const wanted=Array.isArray(layout?.order)?layout.order:[];
+ const order=[...new Set([...wanted,...ids])].filter(id=>ids.includes(id));
+ const hidden=(Array.isArray(layout?.hidden)?layout.hidden:[]).filter(id=>ids.includes(id)&&id!=='settings');
+ return {order,hidden:[...new Set(hidden)]};
+}
+export function changeHomeLayout(layout,ids,id,action){
+ const next=homeSections(layout,ids),index=next.order.indexOf(id);
+ if(index<0)return next;
+ if(action==='up'&&index>0)[next.order[index-1],next.order[index]]=[next.order[index],next.order[index-1]];
+ if(action==='down'&&index<next.order.length-1)[next.order[index+1],next.order[index]]=[next.order[index],next.order[index+1]];
+ if(action==='toggle'&&id!=='settings')next.hidden=next.hidden.includes(id)?next.hidden.filter(x=>x!==id):[...next.hidden,id];
+ return next;
+}
