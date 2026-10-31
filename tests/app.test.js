@@ -54,3 +54,8 @@ test('Card detail omits logo while retaining the card information',()=>{
  assert.ok(elements.get('#details').innerHTML.includes('1234'));assert.ok(!elements.get('#details').innerHTML.includes('large-logo'));assert.ok(!elements.get('#details').innerHTML.includes('Logo obchodu'));
  assert.ok(run("visualPage('cards')").includes('loyalty-logo'));
 });
+
+test('Fuel appears under cars and in finance purchases without duplicate expense records',()=>{
+ const {run}=harness();run("data.cars=[{id:'car',title:'Auto'}];data.fuel=[{id:'f',title:'Stanica',carId:'car',date:today(),km:'1000',litres:'40',amount:'60',full:true}];");
+ assert.ok(run("listPage('cars')").includes('Tankovanie a spotreba'));assert.ok(run("listPage('cars')").includes('Stanica'));assert.equal(run('monthTotal()'),60);assert.equal(run('data.expenses.length'),0);run("financeTab='purchases';");assert.ok(run('finance()').includes('Stanica'));
+});

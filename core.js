@@ -19,8 +19,8 @@ export async function createEnvelope(data,secret) {const salt=b64(crypto.getRand
 export const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 export function monthCells(year,month) { const first=new Date(year,month,1),offset=(first.getDay()+6)%7;return Array.from({length:Math.ceil((offset+new Date(year,month+1,0).getDate())/7)*7},(_,i)=>{const d=new Date(year,month,1-offset+i);return {date:dateKey(d),day:d.getDate(),current:d.getMonth()===month};});}
 export const money = n => new Intl.NumberFormat('sk-SK',{style:'currency',currency:'EUR'}).format(Number(n)||0);
-export function emptyData() {return {schema:1,recurring:[],income:[],payments:[],notes:[],events:[],expenses:[],cards:[],tasks:[],shopping:[],shoppingLists:[],cars:[],service:[],vault:null};}
-export function validateData(d) {if(d?.schema!==1 || !['notes','events','expenses','cards','tasks','shopping','cars','service'].every(k=>Array.isArray(d[k]))) throw Error('Záloha neobsahuje údaje FSB.');for(const k of ['recurring','income','payments']){if(d[k]===undefined)d[k]=[];if(!Array.isArray(d[k]))throw Error('Neplatné finančné údaje.');}return migrateShopping(d);}
+export function emptyData() {return {schema:1,recurring:[],income:[],payments:[],notes:[],events:[],expenses:[],cards:[],tasks:[],shopping:[],shoppingLists:[],cars:[],service:[],fuel:[],vault:null};}
+export function validateData(d) {if(d?.schema!==1 || !['notes','events','expenses','cards','tasks','shopping','cars','service'].every(k=>Array.isArray(d[k]))) throw Error('Záloha neobsahuje údaje FSB.');for(const k of ['recurring','income','payments','fuel']){if(d[k]===undefined)d[k]=[];if(!Array.isArray(d[k]))throw Error('Neplatné finančné údaje.');}return migrateShopping(d);}
 
 
 // Money calculations use integer cents. Installment balances are the remaining
@@ -40,7 +40,7 @@ export function recurringDue(r,payments,month) {
 }
 export function financeSummary(d,month) {
  const income=(d.income||[]).filter(r=>r.date?.startsWith(month)).reduce((n,r)=>n+cents(r.amount),0);
- const spent=[...(d.expenses||[]),...(d.service||[]),...(d.payments||[])].filter(r=>r.date?.startsWith(month)).reduce((n,r)=>n+cents(r.amount),0);
+ const spent=[...(d.expenses||[]),...(d.service||[]),...(d.fuel||[]),...(d.payments||[])].filter(r=>r.date?.startsWith(month)).reduce((n,r)=>n+cents(r.amount),0);
  const due=(d.recurring||[]).reduce((n,r)=>n+((d.payments||[]).some(p=>p.recurringId===r.id&&p.month===month)?0:cents(recurringDue(r,d.payments||[],month))),0);
  return {income:income/100,spent:spent/100,due:due/100,available:(income-spent)/100,afterBills:(income-spent-due)/100};
 }
@@ -73,4 +73,28 @@ export function changeHomeLayout(layout,ids,id,action){
  if(action==='down'&&index<next.order.length-1)[next.order[index+1],next.order[index]]=[next.order[index],next.order[index+1]];
  if(action==='toggle'&&id!=='settings')next.hidden=next.hidden.includes(id)?next.hidden.filter(x=>x!==id):[...next.hidden,id];
  return next;
+}
+
+
+export function fuelStats(records,carId){
+ const rows=records.filter(r=>r.carId===carId).sort((a,b)=>a.date.localeCompare(b.date)||Number(a.km)-Number(b.km));
+ let anchor=null,litres=0,cost=0;const intervals=[];
+ for(const r of rows){
+  if(r.missed){anchor=null;litres=0;cost=0;}
+  if(anchor){litres+=Number(r.litres);cost+=cents(r.amount);}
+  if(r.full){
+   if(anchor&&Number(r.km)>Number(anchor.km)){const distance=Number(r.km)-Number(anchor.km);intervals.push({from:anchor.date,to:r.date,distance,litres,amount:cost/100,consumption:litres/distance*100});}
+   anchor=r;litres=0;cost=0;
+  }
+ }
+ const distance=intervals.reduce((n,r)=>n+r.distance,0),used=intervals.reduce((n,r)=>n+r.litres,0),costUsed=intervals.reduce((n,r)=>n+cents(r.amount),0);
+ return {intervals,distance,consumption:distance?used/distance*100:null,costPer100:distance?costUsed/100/distance*100:null,totalCost:rows.reduce((n,r)=>n+cents(r.amount),0)/100,totalLitres:rows.reduce((n,r)=>n+Number(r.litres),0)};
+}
+export function validateFuelRecord(record,records,cars){
+ if(!cars.some(c=>c.id===record.carId))throw Error('Vyber auto.');
+ if(!record.date||!Number.isInteger(Number(record.km))||Number(record.km)<0)throw Error('Zadaj dátum a celé kilometre.');
+ if(!Number.isFinite(Number(record.litres))||Number(record.litres)<=0||!Number.isFinite(Number(record.amount))||Number(record.amount)<=0)throw Error('Litre aj cena musia byť väčšie ako nula.');
+ const others=records.filter(r=>r.carId===record.carId&&r.id!==record.id);
+ if(others.some(r=>r.date<record.date&&Number(r.km)>Number(record.km))||others.some(r=>r.date>record.date&&Number(r.km)<Number(record.km)))throw Error('Kilometre nesedia s dátumami ostatných tankovaní.');
+ return record;
 }
